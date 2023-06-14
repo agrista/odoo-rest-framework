@@ -23,7 +23,7 @@ Odoo FastAPI
     :target: https://runbot.odoo-community.org/runbot/271/16.0
     :alt: Try me on Runbot
 
-|badge1| |badge2| |badge3| |badge4| |badge5| 
+|badge1| |badge2| |badge3| |badge4| |badge5|
 
 This addon provides the basis to smoothly integrate the `FastAPI`_
 framework into Odoo.
@@ -1502,7 +1502,7 @@ promote its widespread use.
 
 Current `maintainer <https://odoo-community.org/page/maintainer-role>`__:
 
-|maintainer-lmignon| 
+|maintainer-lmignon|
 
 This module is part of the `OCA/rest-framework <https://github.com/OCA/rest-framework/tree/16.0/fastapi>`_ project on GitHub.
 
