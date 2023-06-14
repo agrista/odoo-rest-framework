@@ -23,7 +23,7 @@ Odoo FastAPI
     :target: https://runbot.odoo-community.org/runbot/271/16.0
     :alt: Try me on Runbot
 
-|badge1| |badge2| |badge3| |badge4| |badge5|
+|badge1| |badge2| |badge3| |badge4| |badge5| 
 
 This addon provides the basis to smoothly integrate the `FastAPI`_
 framework into Odoo.
@@ -31,7 +31,8 @@ framework into Odoo.
 This integration allows you to use all the goodies from `FastAPI`_ to build custom
 APIs for your Odoo server based on standard Python type hints.
 
-**What is building an API?**
+What is building an API?
+************************
 
 An API is a set of functions that can be called from the outside world. The
 goal of an API is to provide a way to interact with your application from the
@@ -73,7 +74,7 @@ Usage
 =====
 
 What's building an API with fastapi?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+************************************
 
 FastAPI is a modern, fast (high-performance), web framework for building APIs
 with Python 3.7+ based on standard Python type hints. This addons let's you
@@ -144,12 +145,12 @@ instance is the mount point for a fastapi app into Odoo. When you create a new
 endpoint, you can define the app that you want to mount in the **'app'** field
 and the path where you want to mount it in the **'path'** field.
 
-figure:: static/description/endpoint_create.png
+figure:: static/description/endpoint.png
 
     FastAPI Endpoint
 
 Thanks to the **'fastapi.endpoint'** model, you can create as many endpoints as
-you want and mount as many apps as you want in each endpoint. The endpoint is
+you wand and mount as many apps as you want in each endpoint. The endpoint is
 also the place where you can define configuration parameters for your app. A
 typical example is the authentication method that you want to use for your app
 when accessed at the endpoint path.
@@ -203,14 +204,9 @@ that returns a list of partners.
 
 .. code-block:: python
 
-    from typing import Annotated
-
     from fastapi import APIRouter
     from pydantic import BaseModel
-
     from odoo import api, fields, models
-    from odoo.api import Environment
-
     from odoo.addons.fastapi.dependencies import odoo_env
 
     class FastapiEndpoint(models.Model):
@@ -234,7 +230,7 @@ that returns a list of partners.
         email: str
 
     @demo_api_router.get("/partners", response_model=list[PartnerInfo])
-    def get_partners(env: Annotated[Environment, Depends(odoo_env)]) -> list[PartnerInfo]:
+    def get_partners(env=Depends(odoo_env)) -> list[PartnerInfo]:
         return [
             PartnerInfo(name=partner.name, email=partner.email)
             for partner in env["res.partner"].search([])
@@ -288,7 +284,7 @@ of the route that you have defined. The result of the request will be displayed
 in the 'Response' section and contains the list of partners.
 
 .. note::
-  The **'FastAPI Endpoint Runner'** group ensures that the user cannot access any
+  The **'FastAPI Endpoint Runner'** group ensures that the user can access any
   information others than the 3 ones mentioned above. This means that for every
   information that you want to access from your app, you need to create the
   proper ACLs and record rules. (see `Managing security into the route handlers`_)
@@ -297,7 +293,7 @@ in the 'Response' section and contains the list of partners.
   the proper security rules for your endoints.
 
 Dealing with the odoo environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*********************************
 
 The **'odoo.addons.fastapi.dependencies'** module provides a set of functions that you can use
 to inject reusable dependencies into your routes. For example, the **'odoo_env'**
@@ -306,13 +302,10 @@ odoo models and the database from your route handlers.
 
 .. code-block:: python
 
-    from typing import Annotated
-
-    from odoo.api import Environment
     from odoo.addons.fastapi.dependencies import odoo_env
 
     @demo_api_router.get("/partners", response_model=list[PartnerInfo])
-    def get_partners(env: Annotated[Environment, Depends(odoo_env)]) -> list[PartnerInfo]:
+    def get_partners(env=Depends(odoo_env)) -> list[PartnerInfo]:
         return [
             PartnerInfo(name=partner.name, email=partner.email)
             for partner in env["res.partner"].search([])
@@ -347,7 +340,7 @@ available without extra work.
   not public.
 
 The dependency injection mechanism
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**********************************
 
 The **'odoo_env'** dependency relies on a simple implementation that retrieves
 the current odoo environment from ContextVar variable initialized at the start
@@ -372,8 +365,8 @@ of these parameters are dependencies themselves.
 
 
     def fastapi_endpoint(
-        _id: Annotated[int, Depends(fastapi_endpoint_id)],
-        env: Annotated[Environment, Depends(odoo_env)],
+        _id: int = Depends(fastapi_endpoint_id),  # noqa: B008
+        env: Environment = Depends(odoo_env),  # noqa: B008
     ) -> "FastapiEndpoint":
         """Return the fastapi.endpoint record"""
         return env["fastapi.endpoint"].browse(_id)
@@ -405,7 +398,7 @@ used by any other addon and for which the implementation could depend on the
 endpoint configuration.
 
 The authentication mechanism
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
 
 To make our app not tightly coupled with a specific authentication mechanism,
 we will use the **'authenticated_partner'** dependency. As for the
@@ -416,12 +409,9 @@ dependency as a parameter of your route handler.
 
 .. code-block:: python
 
-    from odoo.addons.base.models.res_partner import Partner
-
-
     @demo_api_router.get("/partners", response_model=list[PartnerInfo])
     def get_partners(
-        env: Annotated[Environment, Depends(odoo_env)], partner: Annotated[Partner, Depends(authenticated_partner)]
+        env=Depends(odoo_env), partner=Depends(authenticated_partner)
     ) -> list[PartnerInfo]:
         return [
             PartnerInfo(name=partner.name, email=partner.email)
@@ -440,8 +430,8 @@ by the **'fastapi.security'** module.
 .. code-block:: python
 
       def authenticated_partner(
-          env: Annotated[Environment, Depends(odoo_env)],
-          security: Annotated[HTTPBasicCredentials, Depends(HTTPBasic())],
+          env: Environment = Depends(odoo_env),
+          security: HTTPBasicCredentials = Depends(HTTPBasic()),
       ) -> "res.partner":
           """Return the authenticated partner"""
           partner = env["res.partner"].search(
@@ -484,13 +474,13 @@ implemented, we will only implement the api key authentication mechanism.
   from fastapi.security import APIKeyHeader
 
   def api_key_based_authenticated_partner_impl(
-      api_key: Annotated[str, Depends(
+      api_key: str = Depends(  # noqa: B008
           APIKeyHeader(
               name="api-key",
               description="In this demo, you can use a user's login as api key.",
           )
-      )],
-      env: Annotated[Environment, Depends(odoo_env)],
+      ),
+      env: Environment = Depends(odoo_env),  # noqa: B008
   ) -> Partner:
       """A dummy implementation that look for a user with the same login
       as the provided api key
@@ -582,7 +572,7 @@ configured on your fastapi endpoint, the documentation will change.
   <https://github.com/tiangolo/fastapi/pull/5452>`_
 
 Managing configuration parameters for your app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***********************************************
 
 As we have seen in the previous section, you can add configuration fields
 on the fastapi endpoint model to allow the user to configure your app (as for
@@ -612,7 +602,7 @@ current request.
         dependencies=[Depends(authenticated_partner)],
     )
     async def endpoint_app_info(
-        endpoint: Annotated[FastapiEndpoint, Depends(fastapi_endpoint)],
+        endpoint: FastapiEndpoint = Depends(fastapi_endpoint),  # noqa: B008
     ) -> EndpointAppInfo:
         """Returns the current endpoint configuration"""
         # This method show you how to get access to current endpoint configuration
@@ -651,7 +641,7 @@ list.
           return fields
 
 Dealing with languages
-~~~~~~~~~~~~~~~~~~~~~~
+**********************
 
 The fastapi addon parses the Accept-Language header of the request to determine
 the language to use. This parsing is done by respecting the `RFC 7231 specification
@@ -666,7 +656,7 @@ of your app to instruct the api consumers how to request a specific language.
 
 
 How to extend an existing app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+******************************
 
 When you develop a fastapi app, in a native python app it's not possible
 to extend an existing one. This limitation doesn't apply to the fastapi addon
@@ -738,7 +728,7 @@ method **'echo'**.
   )
   async def echo(
       message: str,
-      odoo_env: Annotated[Environment, Depends(odoo_env)],
+      odoo_env: OdooEnv = Depends(odoo_env),
   ) -> EchoResponse:
       """Echo the message"""
       return EchoResponse(message=odoo_env["demo.fastapi.endpoint"].echo(message))
@@ -803,7 +793,7 @@ it.
   )
   async def echo2(
       message: str,
-      odoo_env: Annotated[Environment, Depends(odoo_env)],
+      odoo_env: OdooEnv = Depends(odoo_env),
   ) -> EchoResponse:
       """Echo the message"""
       echo = odoo_env["demo.fastapi.endpoint"].echo2(message)
@@ -838,7 +828,7 @@ returned by the method **'_get_fastapi_routers'** of the model
   )
   async def echo2(
       message: str,
-      odoo_env: Annotated[Environment, Depends(odoo_env)],
+      odoo_env: OdooEnv = Depends(odoo_env),
   ) -> EchoResponse:
       """Echo the message"""
       echo = odoo_env["demo.fastapi.endpoint"].echo2(message)
@@ -885,7 +875,7 @@ pydantic.
       dependencies=[Depends(authenticated_partner)],
   )
   async def partner(
-      partner: Annotated[ResPartner, Depends(authenticated_partner)],
+      partner: ResPartner = Depends(authenticated_partner),
   ) -> Partner:
       """Return the location"""
       return Partner.from_orm(partner)
@@ -929,7 +919,7 @@ If your new addon is not installed in a database, a call to the route handler
   default values for the new optional fields.
 
 Managing security into the route handlers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*****************************************
 
 By default the route handlers are processed using the user configured on the
 **'fastapi.endpoint'** model instance. (default is the Public user).
@@ -1002,7 +992,7 @@ fastapi app and you want to protect your data in an efficient and traceable way 
   </record>
 
 How to test your fastapi app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
 
 Thanks to the starlette test client, it's possible to test your fastapi app
 in a very simple way. With the test client, you can call your route handlers
@@ -1016,69 +1006,55 @@ normally provided by the normal processing of the request by the fastapi app.
 to test the behavior of your route handlers when the partner is not authenticated,
 you can also inject a mock for the odoo_env etc...)
 
-The fastapi addon provides a base class for the test cases that you can use to
-write your tests. This base class is **'odoo.fastapi.tests.common.FastAPITransactionCase'**.
-This class mainly provides the method **'_create_test_client'** that you can
-use to create a test client for your fastapi app. This method encapsulates the
-creation of the test client and the injection of the dependencies. It also
-ensures that the odoo environment is make available into the context of the
-route handlers. This method is designed to be used when you need to test your
-app or when you need to test a specific router (It's therefore easy to defines
-tests for routers in an addon that doesn't provide a fastapi endpoint).
-
-With this base class, writing a test for a route handler is as simple as:
+With all these features, writing a test for the 'Hello world' route handler
+defined into the demo app is as simple as
 
 .. code-block:: python
 
-  from odoo.fastapi.tests.common import FastAPITransactionCase
+  from functools import partial
 
-  from odoo.addons.fastapi import dependencies
-  from odoo.addons.fastapi.routers import demo_router
+  from requests import Response
 
-  class FastAPIDemoCase(FastAPITransactionCase):
+  from odoo.tests.common import TransactionCase
+
+  from fastapi.testclient import TestClient
+
+  from .. import dependencies
+  from ..context import odoo_env_ctx
+
+
+  class FastAPIDemoCase(TransactionCase):
 
       @classmethod
       def setUpClass(cls) -> None:
           super().setUpClass()
-          cls.default_fastapi_running_user = cls.env.ref("fastapi.my_demo_app_user")
-          cls.default_fastapi_authenticated_partner = cls.env["res.partner"].create({"name": "FastAPI Demo"})
-
-      def test_hello_world(self) -> None:
-          with self._create_test_client(router=demo_router) as test_client:
-              response: Response = test_client.get("/demo/")
-          self.assertEqual(response.status_code, status.HTTP_200_OK)
-          self.assertDictEqual(response.json(), {"Hello": "World"})
-
-
-In the previous example, we created a test client for the demo_router. We could
-have created a test client for the whole app by not specifying the router but
-the app instead.
-
-.. code-block:: python
-
-  from odoo.fastapi.tests.common import FastAPITransactionCase
-
-  from odoo.addons.fastapi import dependencies
-  from odoo.addons.fastapi.routers import demo_router
-
-  class FastAPIDemoCase(FastAPITransactionCase):
+          cls.test_partner = cls.env["res.partner"].create({"name": "FastAPI Demo"})
+          cls.fastapi_demo_app = cls.env.ref("fastapi.fastapi_endpoint_demo")
+          cls.app = cls.fastapi_demo_app._get_app()
+          cls.app.dependency_overrides[dependencies.authenticated_partner_impl] = partial(
+              lambda a: a, cls.test_partner
+          )
+          cls.client = TestClient(cls.app)
+          cls._ctx_token = odoo_env_ctx.set(cls.env)
 
       @classmethod
-      def setUpClass(cls) -> None:
-          super().setUpClass()
-          cls.default_fastapi_running_user = cls.env.ref("fastapi.my_demo_app_user")
-          cls.default_fastapi_authenticated_partner = cls.env["res.partner"].create({"name": "FastAPI Demo"})
+      def tearDownClass(cls) -> None:
+          odoo_env_ctx.reset(cls._ctx_token)
+          cls.fastapi_demo_app._reset_app()
+
+          super().tearDownClass()
+
+      def _get_path(self, path) -> str:
+          return self.fastapi_demo_app.root_path + path
 
       def test_hello_world(self) -> None:
-          demo_endpoint = self.env.ref("fastapi.fastapi_endpoint_demo")
-          with self._create_test_client(app=demo_endpoint._get_app()) as test_client:
-              response: Response = test_client.get(f"{demo_endpoint.root_path}/demo/")
+          response: Response = self.client.get(self._get_path("/"))
           self.assertEqual(response.status_code, status.HTTP_200_OK)
           self.assertDictEqual(response.json(), {"Hello": "World"})
 
 
 Overall considerations when you develop an fastapi app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*******************************************************
 
 Developing a fastapi app requires to follow some good practices to ensure that
 the app is robust and easy to maintain. Here are some of them:
@@ -1212,7 +1188,7 @@ useful information as well, with a lot of examples. Last but not least, the
 `pydantic`_ documentation is also very useful.
 
 Miscellaneous
-~~~~~~~~~~~~~
+*************
 
 Development of a search route handler
 =====================================
@@ -1227,7 +1203,6 @@ you be consistent when writing a route handler for a search route.
 
 .. code-block:: python
 
-    from typing import Annotated
     from pydantic import BaseModel
 
     from odoo.api import Environment
@@ -1245,8 +1220,8 @@ you be consistent when writing a route handler for a search route.
         response_model_exclude_unset=True,
     )
     def get_sale_orders(
-        paging: Annotated[Paging, Depends(paging)],
-        env: Annotated[Environment, Depends(authenticated_partner_env)],
+        paging: Paging = Depends(paging),
+        env: Environment = Depends(authenticated_partner_env),
     ) -> PagedCollection[SaleOrder]:
         """Get the list of sale orders."""
         count = env["sale.order"].search_count([])
@@ -1438,7 +1413,7 @@ are used in the python community when developing a fastapi app.
   you can define them in this file.
 
 What's next?
-~~~~~~~~~~~~
+************
 
 The **'odoo-addon-fastapi'** module is still in its early stage of development.
 It will evolve over time to integrate your feedback and to provide the missing
@@ -1502,7 +1477,7 @@ promote its widespread use.
 
 Current `maintainer <https://odoo-community.org/page/maintainer-role>`__:
 
-|maintainer-lmignon|
+|maintainer-lmignon| 
 
 This module is part of the `OCA/rest-framework <https://github.com/OCA/rest-framework/tree/16.0/fastapi>`_ project on GitHub.
 
