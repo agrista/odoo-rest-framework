@@ -145,12 +145,12 @@ instance is the mount point for a fastapi app into Odoo. When you create a new
 endpoint, you can define the app that you want to mount in the **'app'** field
 and the path where you want to mount it in the **'path'** field.
 
-figure:: static/description/endpoint.png
+figure:: static/description/endpoint_create.png
 
     FastAPI Endpoint
 
 Thanks to the **'fastapi.endpoint'** model, you can create as many endpoints as
-you wand and mount as many apps as you want in each endpoint. The endpoint is
+you want and mount as many apps as you want in each endpoint. The endpoint is
 also the place where you can define configuration parameters for your app. A
 typical example is the authentication method that you want to use for your app
 when accessed at the endpoint path.
@@ -176,7 +176,7 @@ variable into your fastapi_endpoint module called for example 'demo_api_router'
 
 
 To make your router available to your app, you need to add it to the list of routers
-returned by the **get_fastapi_routers** method of your fastapi_endpoint model.
+returned by the **_get_fastapi_routers** method of your fastapi_endpoint model.
 
 .. code-block:: python
 
@@ -191,11 +191,10 @@ returned by the **get_fastapi_routers** method of your fastapi_endpoint model.
             selection_add=[("demo", "Demo Endpoint")], ondelete={"demo": "cascade"}
         )
 
-        @api.model
-        def get_fastapi_routers(self):
+        def _get_fastapi_routers(self):
             if self.app == "demo":
                 return [demo_api_router]
-            return super().get_fastapi_routers()
+            return super()._get_fastapi_routers()
 
     # create a router
     demo_api_router = APIRouter()
@@ -208,7 +207,7 @@ that returns a list of partners.
     from fastapi import APIRouter
     from pydantic import BaseModel
     from odoo import api, fields, models
-    from odoo.addons.fastapi.depends import odoo_env
+    from odoo.addons.fastapi.dependencies import odoo_env
 
     class FastapiEndpoint(models.Model):
 
@@ -218,11 +217,10 @@ that returns a list of partners.
             selection_add=[("demo", "Demo Endpoint")], ondelete={"demo": "cascade"}
         )
 
-        @api.model
-        def get_fastapi_routers(self):
+        def _get_fastapi_routers(self):
             if self.app == "demo":
                 return [demo_api_router]
-            return super().get_fastapi_routers()
+            return super()._get_fastapi_routers()
 
     # create a router
     demo_api_router = APIRouter()
@@ -286,7 +284,7 @@ of the route that you have defined. The result of the request will be displayed
 in the 'Response' section and contains the list of partners.
 
 .. note::
-  The **'FastAPI Endpoint Runner'** group ensures that the user can access any
+  The **'FastAPI Endpoint Runner'** group ensures that the user cannot access any
   information others than the 3 ones mentioned above. This means that for every
   information that you want to access from your app, you need to create the
   proper ACLs and record rules. (see `Managing security into the route handlers`_)
@@ -297,14 +295,14 @@ in the 'Response' section and contains the list of partners.
 Dealing with the odoo environment
 *********************************
 
-The **'odoo.addons.fastapi.depends'** module provides a set of functions that you can use
+The **'odoo.addons.fastapi.dependencies'** module provides a set of functions that you can use
 to inject reusable dependencies into your routes. For example, the **'odoo_env'**
 function returns the current odoo environment. You can use it to access the
 odoo models and the database from your route handlers.
 
 .. code-block:: python
 
-    from odoo.addons.fastapi.depends import odoo_env
+    from odoo.addons.fastapi.dependencies import odoo_env
 
     @demo_api_router.get("/partners", response_model=list[PartnerInfo])
     def get_partners(env=Depends(odoo_env)) -> list[PartnerInfo]:
@@ -390,7 +388,7 @@ model instance for the original method.
         app = FastAPI(**self._prepare_fastapi_endpoint_params())
         for router in self._get_fastapi_routers():
             app.include_router(prefix=self.root_path, router=router)
-        app.dependency_overrides[depends.fastapi_endpoint_id] = partial(
+        app.dependency_overrides[dependencies.fastapi_endpoint_id] = partial(
             lambda a: a, self.id
         )
 
@@ -426,7 +424,7 @@ but only expects to get a partner as a dependency. Depending on your needs, you
 can implement different authentication mechanism available for your app.
 The fastapi addon provides a default authentication mechanism using the
 'BasicAuth' method. This authentication mechanism is implemented in the
-**'odoo.addons.fastapi.depends'** module and relies on functionalities provided
+**'odoo.addons.fastapi.dependencies'** module and relies on functionalities provided
 by the **'fastapi.security'** module.
 
 .. code-block:: python
@@ -459,7 +457,7 @@ In this dummy implementation, we just check that the provided credentials
 can be used to authenticate a user in odoo. If the authentication is successful,
 we return the partner record linked to the authenticated user.
 
-In some cas you could want to implement a more complex authentication mechanism
+In some cases you could want to implement a more complex authentication mechanism
 that could rely on a token or a session. In this case, you can override the
 **'authenticated_partner'** dependency by registering a specific method that
 returns the authenticated partner. Moreover, you can make it configurable on
@@ -494,11 +492,11 @@ implemented, we will only implement the api key authentication mechanism.
           )
       return partner
 
-As for the 'BasicAuth' authentication mechanism, we also rely one of the native
+As for the 'BasicAuth' authentication mechanism, we also rely on one of the native
 security dependency provided by the **'fastapi.security'** module.
 
-Now that we have an implementation for our two authentication mechanism, we
-can allows the user to select one of these authentication mechanism by adding
+Now that we have an implementation for our two authentication mechanisms, we
+can allows the user to select one of these authentication mechanisms by adding
 a selection field on the fastapi endpoint model.
 
 .. code-block:: python
@@ -529,8 +527,7 @@ when the app is instantiated.
 
 .. code-block:: python
 
-  from odoo.addons.fastapi import depends
-  from odoo.addons.fastapi.depends import authenticated_partner
+  from odoo.addons.fastapi.dependencies import authenticated_partner
   class FastapiEndpoint(models.Model):
 
       _inherit = "fastapi.endpoint"
@@ -556,9 +553,9 @@ when the app is instantiated.
                 authenticated_partner_impl_override = (
                     api_key_based_authenticated_partner_impl
                 )
-        app.dependency_overrides[
-            authenticated_partner_impl
-        ] = authenticated_partner_impl_override
+            app.dependency_overrides[
+                authenticated_partner_impl
+            ] = authenticated_partner_impl_override
         return app
 
 
@@ -569,7 +566,7 @@ is configurable. You can also see that depending on the authentication method
 configured on your fastapi endpoint, the documentation will change.
 
 .. note::
-  A time of writing, the dependency override mechanism is not supported by
+  At time of writing, the dependency override mechanism is not supported by
   the fastapi documentation generator. A fix has been proposed and is waiting
   to be merged. You can follow the progress of the fix on `github
   <https://github.com/tiangolo/fastapi/pull/5452>`_
@@ -580,14 +577,14 @@ Managing configuration parameters for your app
 As we have seen in the previous section, you can add configuration fields
 on the fastapi endpoint model to allow the user to configure your app (as for
 any odoo model you extend). When you need to access these configuration fields
-in your route handlers, you can use the **'odoo.addons.fastapi.depends.fastapi_endpoint'**
+in your route handlers, you can use the **'odoo.addons.fastapi.dependencies.fastapi_endpoint'**
 dependency method to retrieve the 'fastapi.endpoint' record associated to the
 current request.
 
 .. code-block:: python
 
   from pydantic import BaseModel, Field
-  from odoo.addons.fastapi.depends import fastapi_endpoint
+  from odoo.addons.fastapi.dependencies import fastapi_endpoint
 
   class EndpointAppInfo(BaseModel):
     id: str
@@ -662,7 +659,7 @@ How to extend an existing app
 ******************************
 
 When you develop a fastapi app, in a native python app it's not possible
-to extend and existing one. This limitation doesn't apply to the fastapi addon
+to extend an existing one. This limitation doesn't apply to the fastapi addon
 because the fastapi endpoint model is designed to be extended. However, the
 way to extend an existing app is not the same as the way to extend an odoo model.
 
@@ -711,7 +708,7 @@ method **'echo'**.
   from pydantic import BaseModel
   from fastapi import Depends, APIRouter
   from odoo import models
-  from odoo.addons.fastapi.depends import odoo_env
+  from odoo.addons.fastapi.dependencies import odoo_env
 
   class FastapiEndpoint(models.Model):
 
@@ -774,7 +771,7 @@ dependency without having to change the route handler. With such a design, you
 can even define abstract dependencies that must be implemented by the concrete
 application. This is the case of the **'authenticated_partner'** dependency in our
 previous example. (you can find the implementation of this dependency in the
-file **'odoo/addons/fastapi/depends.py'** and it's usage in the file
+file **'odoo/addons/fastapi/dependencies.py'** and it's usage in the file
 **'odoo/addons/fastapi/models/fastapi_endpoint_demo.py'**)
 
 Adding a new route handler
@@ -1022,7 +1019,7 @@ defined into the demo app is as simple as
 
   from fastapi.testclient import TestClient
 
-  from .. import depends
+  from .. import dependencies
   from ..context import odoo_env_ctx
 
 
@@ -1034,7 +1031,7 @@ defined into the demo app is as simple as
           cls.test_partner = cls.env["res.partner"].create({"name": "FastAPI Demo"})
           cls.fastapi_demo_app = cls.env.ref("fastapi.fastapi_endpoint_demo")
           cls.app = cls.fastapi_demo_app._get_app()
-          cls.app.dependency_overrides[depends.authenticated_partner_impl] = partial(
+          cls.app.dependency_overrides[dependencies.authenticated_partner_impl] = partial(
               lambda a: a, cls.test_partner
           )
           cls.client = TestClient(cls.app)
@@ -1182,7 +1179,7 @@ the app is robust and easy to maintain. Here are some of them:
 
 We could write a book about the best practices to follow when you design your api
 but we will stop here. This list is the result of our experience at `ACSONE SA/NV
-<https://acsone.eu>`_ and it evolve over time. It's a kind of rescue kit that we
+<https://acsone.eu>`_ and it evolves over time. It's a kind of rescue kit that we
 would provide to a new developer that starts to design an api. This kit must
 be accompanied with the reading of some useful resources link like the `REST Guidelines
 <https://www.belgif.be/specification/rest/api-guide/>`_. On a technical level,
@@ -1209,7 +1206,7 @@ you be consistent when writing a route handler for a search route.
     from pydantic import BaseModel
 
     from odoo.api import Environment
-    from odoo.addons.fastapi.depends import paging, authenticated_partner_env
+    from odoo.addons.fastapi.dependencies import paging, authenticated_partner_env
     from odoo.addons.fastapi.schemas import PagedCollection, Paging
 
     class SaleOrder(BaseModel):
@@ -1239,9 +1236,6 @@ you be consistent when writing a route handler for a search route.
     The **'odoo.addons.fastapi.schemas.Paging'** and **'odoo.addons.fastapi.schemas.PagedCollection'**
     pydantic models are not designed to be extended to not introduce a
     dependency between the **'odoo-addon-fastapi'** module and the **'odoo-addon-extendable'**
-    Moreover, at the time of writing, the **'extendable-pydantic'** library does not
-    support Generic models. Nevertheless, a pull request has been submitted to
-    add this feature to the library. (see `PR 1 <https://github.com/lmignon/extendable-pydantic/pull/1>`_)
 
 
 Customization of the error handling
@@ -1290,11 +1284,11 @@ the method `_get_app_exception_handlers` in your custom module.
         _inherit = "fastapi.endpoint"
 
         def _get_app_exception_handlers(
-        self,
-    ) -> Dict[
-        int | Type[Exception],
-        Callable[[Request, Exception], Union[Response, Awaitable[Response]]],
-    ]:
+            self,
+        ) -> Dict[
+            Union[int, Type[Exception]],
+            Callable[[Request, Exception], Union[Response, Awaitable[Response]]],
+        ]:
             handlers = super()._get_app_exception_handlers()
             access_error_handler = handlers.get(odoo.exceptions.AccessError)
             handlers[odoo.exceptions.AccessError] = MyCustomErrorHandler(access_error_handler)
@@ -1304,6 +1298,119 @@ In the previous example, we extend the error handler for the 'AccessError' excep
 for all the endpoints. You can do the same for a specific app by checking the
 'app' field of the 'fastapi.endpoint' record before registering your custom error
 handler.
+
+FastAPI addons directory structure
+==================================
+
+When you develop a new addon to expose an api with fastapi, it's a good practice
+to follow the same directory structure and naming convention for the files
+related to the api. It will help you to easily find the files related to the api
+and it will help the other developers to understand your code.
+
+Here is the directory structure that we recommend. It's based on practices that
+are used in the python community when developing a fastapi app.
+
+.. code-block::
+
+  .
+  ├── x_api
+  │   ├── data
+  │   │   ├── ... .xml
+  │   ├── demo
+  │   │   ├── ... .xml
+  │   ├── i18n
+  │   │   ├── ... .po
+  │   ├── models
+  │   │   ├── __init__.py
+  │   │   ├── fastapi_endpoint.py  # your app
+  │   │   └── ... .py
+  │   └── routers
+  │   │   ├── __init__.py
+  │   │   ├── items.py
+  │   │   └── ... .py
+  │   ├── schemas | schemas.py
+  │   │   ├── __init__.py
+  │   │   ├── my_model.py  # pydantic model
+  │   │   └── ... .py
+  │   ├── security
+  │   │   ├── ... .xml
+  │   ├── views
+  │   │   ├── ... .xml
+  │   ├── __init__.py
+  │   ├── __manifest__.py
+  │   ├── dependencies.py  # custom dependencies
+  │   ├── error_handlers.py  # custom error handlers
+
+
+* The **'models'** directory contains the odoo models. When you define a new
+  app, as for the others addons, you will add your new model inheriting from
+  the **'fastapi.endpoint'** model in this directory.
+* The **'routers'** directory contains the fastapi routers. You will add your
+  new routers in this directory. Each route starting with the same prefix should
+  be grouped in the same file. For example, all the routes starting with
+  '/items' should be defined in the **'items.py'** file. The **'__init__.py'**
+  file in this directory is used to import all the routers defined in the
+  directory and create a global router that can be used in an app. For example,
+  in your **'items.py'** file, you will define a router like this:
+
+  .. code-block:: python
+
+    router = APIRouter(tags=["items"])
+
+    router.get("/items", response_model=List[Item])
+    def list_items():
+        pass
+
+  In the **'__init__.py'** file, you will import the router and add it to the global
+  router or your addon.
+
+  .. code-block:: python
+
+    from fastapi import APIRouter
+
+    from .items import router as items_router
+
+    router = APIRouter()
+    router.include_router(items_router)
+
+* The **'schemas.py'** will be used to define the pydantic models. For complex
+  APIs with a lot of models, it will be better to create a **'schemas'** directory
+  and split the models in different files.  The **'__init__.py'** file in this
+  directory will be used to import all the models defined in the directory.
+  For example, in your **'my_model.py'**
+  file, you will define a model like this:
+
+  .. code-block:: python
+
+    from pydantic import BaseModel
+
+    class MyModel(BaseModel):
+        name: str
+        description: str = None
+
+  In the **'__init__.py'** file, you will import the model's classes from the
+  files in the directory.
+
+  .. code-block:: python
+
+    from .my_model import MyModel
+
+  This will allow to always import the models from the schemas module whatever
+  the models are spread across different files or defined in the **'schemas.py'**
+  file.
+
+  .. code-block:: python
+
+    from x_api_addon.schemas import MyModel
+
+* The **'dependencies.py'** file contains the custom dependencies that you
+  will use in your routers. For example, you can define a dependency to
+  check the access rights of the user.
+* The **'error_handlers.py'** file contains the custom error handlers that you
+  will use in your routers. The **'odoo-addon-fastapi'** module provides the
+  default error handlers for the common odoo exceptions. Chance are that you
+  will not need to define your own error handlers. But if you need to do it,
+  you can define them in this file.
 
 What's next?
 ************
