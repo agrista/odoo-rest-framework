@@ -43,7 +43,7 @@
         <field name="groups" eval="[(4, ref('group_fastapi_endpoint_runner'))]" />
     </record>
 
-    <!-- give access by the user running the demo app to the fastapi.enddoint model -->
+    <!-- give access by the user running the demo app to the fastapi.endpoint model -->
     <record id="fastapi_endpoint_fastapi_running_user" model="ir.model.access">
         <field name="name">Fastapi: Running user read endpoints</field>
         <field name="model_id" ref="fastapi.model_fastapi_endpoint" />
