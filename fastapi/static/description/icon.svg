@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100px" height="100px" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Artboard</title>
+    <g id="Artboard" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="fastapi-1" fill-rule="nonzero">
+            <circle id="Oval" fill="#15D3BB" cx="50" cy="50" r="50"></circle>
+            <polygon id="Path" fill="#FFFFFF" points="52.8409091 12.1214286 27.6785714 57.575974 50.3246753 57.575974 47.8084416 87.8785714 72.9707792 42.424026 50.3246753 42.424026"></polygon>
+        </g>
+    </g>
+</svg>
