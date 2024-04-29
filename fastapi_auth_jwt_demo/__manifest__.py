@@ -13,5 +13,4 @@
     "depends": ["fastapi_auth_jwt", "auth_jwt_demo"],
     "data": [],
     "demo": ["demo/fastapi_endpoint.xml"],
-    "installable": False,
 }
