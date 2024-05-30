@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import warnings
 from enum import Enum
-from typing import Annotated, Generic, Optional, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field
 
@@ -37,8 +37,8 @@ class PagedCollection(BaseModel, Generic[T]):
 
 
 class Paging(BaseModel):
-    limit: Optional[int] = None  # noqa: UP007
-    offset: Optional[int] = None  # noqa: UP007
+    limit: int | None
+    offset: int | None
 
 
 #############################################################
